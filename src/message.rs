@@ -2,7 +2,7 @@ use std::{fmt::Display, str::FromStr};
 
 use serde::{Deserialize, Serialize, de::Visitor};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum EntityId {
     Client(usize),
     Node(usize),
@@ -74,6 +74,15 @@ impl<'de> Deserialize<'de> for EntityId {
     }
 }
 
+impl From<EntityId> for u64 {
+    fn from(entity_id: EntityId) -> Self {
+        match entity_id {
+            EntityId::Client(id) => id as u64,
+            EntityId::Node(id) => id as u64,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum MsgPayload<'p> {
@@ -87,6 +96,10 @@ pub enum MsgPayload<'p> {
     },
     EchoOk {
         echo: String,
+    },
+    Generate,
+    GenerateOk {
+        id: u64,
     },
 }
 
@@ -109,7 +122,7 @@ pub struct MsgEnvelope<'e> {
 }
 
 impl MsgEnvelope<'_> {
-    pub fn reply<'r>(self, msg_id: usize, payload: MsgPayload<'r>) -> MsgEnvelope<'r> {
+    pub fn reply<'r>(&self, msg_id: usize, payload: MsgPayload<'r>) -> MsgEnvelope<'r> {
         MsgEnvelope {
             src: self.dest,
             dest: self.src,
